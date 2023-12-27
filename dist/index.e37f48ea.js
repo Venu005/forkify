@@ -2759,9 +2759,9 @@ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _view = require("./View");
 var _viewDefault = parcelHelpers.interopDefault(_view);
+var _fractionParser = require("fraction-parser");
 var _iconsSvg = require("url:../../img/icons.svg");
 var _iconsSvgDefault = parcelHelpers.interopDefault(_iconsSvg);
-var _fractional = require("fractional");
 class RecipeView extends (0, _viewDefault.default) {
     /* values are unique to recipe */ _parentElement = document.querySelector(`.recipe`);
     _errorMessage = `Let's cook something else today \u{1F31A}\u{1F31A}`;
@@ -2868,7 +2868,9 @@ class RecipeView extends (0, _viewDefault.default) {
         <svg class="recipe__icon">
           <use href="${0, _iconsSvgDefault.default}#icon-check"></use>
         </svg>
-        <div class="recipe__quantity">${ing.quantity ? new (0, _fractional.Fraction)(ing.quantity).toString() : ""}</div>
+        <div class="recipe__quantity">${ing.quantity ? (0, _fractionParser.toFraction)(ing.quantity, {
+            useUnicodeVulgar: true
+        }).toString() : ""}</div>
         <div class="recipe__description">
           <span class="recipe__unit">${ing.unit}</span>${ing.description}
         </div>
@@ -2879,7 +2881,7 @@ class RecipeView extends (0, _viewDefault.default) {
 // creating an object and exploring it
 exports.default = new RecipeView();
 
-},{"./View":"5cUXS","url:../../img/icons.svg":"loVOp","fractional":"3SU56","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5cUXS":[function(require,module,exports) {
+},{"./View":"5cUXS","fraction-parser":"9tEHz","url:../../img/icons.svg":"loVOp","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5cUXS":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _iconsSvg = require("url:../../img/icons.svg");
@@ -2990,260 +2992,191 @@ exports.getBundleURL = getBundleURLCached;
 exports.getBaseURL = getBaseURL;
 exports.getOrigin = getOrigin;
 
-},{}],"3SU56":[function(require,module,exports) {
-/*
-fraction.js
-A Javascript fraction library.
-
-Copyright (c) 2009  Erik Garrison <erik@hypervolu.me>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
-*/ /* Fractions */ /* 
- *
- * Fraction objects are comprised of a numerator and a denomenator.  These
- * values can be accessed at fraction.numerator and fraction.denomenator.
- *
- * Fractions are always returned and stored in lowest-form normalized format.
- * This is accomplished via Fraction.normalize.
- *
- * The following mathematical operations on fractions are supported:
- *
- * Fraction.equals
- * Fraction.add
- * Fraction.subtract
- * Fraction.multiply
- * Fraction.divide
- *
- * These operations accept both numbers and fraction objects.  (Best results
- * are guaranteed when the input is a fraction object.)  They all return a new
- * Fraction object.
- *
- * Usage:
- *
- * TODO
- *
- */ /*
- * The Fraction constructor takes one of:
- *   an explicit numerator (integer) and denominator (integer),
- *   a string representation of the fraction (string),
- *   or a floating-point number (float)
- *
- * These initialization methods are provided for convenience.  Because of
- * rounding issues the best results will be given when the fraction is
- * constructed from an explicit integer numerator and denomenator, and not a
- * decimal number.
- *
- *
- * e.g. new Fraction(1, 2) --> 1/2
- *      new Fraction('1/2') --> 1/2
- *      new Fraction('2 3/4') --> 11/4  (prints as 2 3/4)
- *
- */ Fraction = function(numerator, denominator) {
-    /* double argument invocation */ if (typeof numerator !== "undefined" && denominator) {
-        if (typeof numerator === "number" && typeof denominator === "number") {
-            this.numerator = numerator;
-            this.denominator = denominator;
-        } else if (typeof numerator === "string" && typeof denominator === "string") {
-            // what are they?
-            // hmm....
-            // assume they are ints?
-            this.numerator = parseInt(numerator);
-            this.denominator = parseInt(denominator);
-        }
-    /* single-argument invocation */ } else if (typeof denominator === "undefined") {
-        num = numerator; // swap variable names for legibility
-        if (typeof num === "number") {
-            this.numerator = num;
-            this.denominator = 1;
-        } else if (typeof num === "string") {
-            var a, b; // hold the first and second part of the fraction, e.g. a = '1' and b = '2/3' in 1 2/3
-            // or a = '2/3' and b = undefined if we are just passed a single-part number
-            var arr = num.split(" ");
-            if (arr[0]) a = arr[0];
-            if (arr[1]) b = arr[1];
-            /* compound fraction e.g. 'A B/C' */ //  if a is an integer ...
-            if (a % 1 === 0 && b && b.match("/")) return new Fraction(a).add(new Fraction(b));
-            else if (a && !b) {
-                /* simple fraction e.g. 'A/B' */ if (typeof a === "string" && a.match("/")) {
-                    // it's not a whole number... it's actually a fraction without a whole part written
-                    var f = a.split("/");
-                    this.numerator = f[0];
-                    this.denominator = f[1];
-                /* string floating point */ } else if (typeof a === "string" && a.match(".")) return new Fraction(parseFloat(a));
-                else {
-                    this.numerator = parseInt(a);
-                    this.denominator = 1;
-                }
-            } else return undefined; // could not parse
-        }
+},{}],"9tEHz":[function(require,module,exports) {
+"use strict";
+var __importDefault = this && this.__importDefault || function(mod) {
+    return mod && mod.__esModule ? mod : {
+        "default": mod
+    };
+};
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.toDecimal = exports.toFraction = void 0;
+var toFraction_1 = require("7f15b25082c709b7");
+Object.defineProperty(exports, "toFraction", {
+    enumerable: true,
+    get: function() {
+        return __importDefault(toFraction_1).default;
     }
-    this.normalize();
-};
-Fraction.prototype.clone = function() {
-    return new Fraction(this.numerator, this.denominator);
-};
-/* pretty-printer, converts fractions into whole numbers and fractions */ Fraction.prototype.toString = function() {
-    if (this.denominator === "NaN") return "NaN";
-    var wholepart = this.numerator / this.denominator > 0 ? Math.floor(this.numerator / this.denominator) : Math.ceil(this.numerator / this.denominator);
-    var numerator = this.numerator % this.denominator;
-    var denominator = this.denominator;
-    var result = [];
-    if (wholepart != 0) result.push(wholepart);
-    if (numerator != 0) result.push((wholepart === 0 ? numerator : Math.abs(numerator)) + "/" + denominator);
-    return result.length > 0 ? result.join(" ") : 0;
-};
-/* destructively rescale the fraction by some integral factor */ Fraction.prototype.rescale = function(factor) {
-    this.numerator *= factor;
-    this.denominator *= factor;
-    return this;
-};
-Fraction.prototype.add = function(b) {
-    var a = this.clone();
-    if (b instanceof Fraction) b = b.clone();
-    else b = new Fraction(b);
-    td = a.denominator;
-    a.rescale(b.denominator);
-    b.rescale(td);
-    a.numerator += b.numerator;
-    return a.normalize();
-};
-Fraction.prototype.subtract = function(b) {
-    var a = this.clone();
-    if (b instanceof Fraction) b = b.clone(); // we scale our argument destructively, so clone
-    else b = new Fraction(b);
-    td = a.denominator;
-    a.rescale(b.denominator);
-    b.rescale(td);
-    a.numerator -= b.numerator;
-    return a.normalize();
-};
-Fraction.prototype.multiply = function(b) {
-    var a = this.clone();
-    if (b instanceof Fraction) {
-        a.numerator *= b.numerator;
-        a.denominator *= b.denominator;
-    } else if (typeof b === "number") a.numerator *= b;
-    else return a.multiply(new Fraction(b));
-    return a.normalize();
-};
-Fraction.prototype.divide = function(b) {
-    var a = this.clone();
-    if (b instanceof Fraction) {
-        a.numerator *= b.denominator;
-        a.denominator *= b.numerator;
-    } else if (typeof b === "number") a.denominator *= b;
-    else return a.divide(new Fraction(b));
-    return a.normalize();
-};
-Fraction.prototype.equals = function(b) {
-    if (!(b instanceof Fraction)) b = new Fraction(b);
-    // fractions that are equal should have equal normalized forms
-    var a = this.clone().normalize();
-    var b = b.clone().normalize();
-    return a.numerator === b.numerator && a.denominator === b.denominator;
-};
-/* Utility functions */ /* Destructively normalize the fraction to its smallest representation. 
- * e.g. 4/16 -> 1/4, 14/28 -> 1/2, etc.
- * This is called after all math ops.
- */ Fraction.prototype.normalize = function() {
-    var isFloat = function(n) {
-        return typeof n === "number" && (n > 0 && n % 1 > 0 && n % 1 < 1 || n < 0 && n % -1 < 0 && n % -1 > -1);
+});
+var toDecimal_1 = require("638e3f47d64f720c");
+Object.defineProperty(exports, "toDecimal", {
+    enumerable: true,
+    get: function() {
+        return __importDefault(toDecimal_1).default;
+    }
+});
+
+},{"7f15b25082c709b7":"1Dmo5","638e3f47d64f720c":"9puOi"}],"1Dmo5":[function(require,module,exports) {
+"use strict";
+var __importDefault = this && this.__importDefault || function(mod) {
+    return mod && mod.__esModule ? mod : {
+        "default": mod
     };
-    var roundToPlaces = function(n, places) {
-        if (!places) return Math.round(n);
-        else {
-            var scalar = Math.pow(10, places);
-            return Math.round(n * scalar) / scalar;
-        }
+};
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var numberLookupMap_1 = __importDefault(require("79c660cd2f28b7e3"));
+var getClosestLookupNumber_1 = __importDefault(require("2c56d87c4edb32aa"));
+// functions that returns a string representation of a fraction from a number
+var toFraction = function(decimal, _a) {
+    var _b = _a.useUnicodeVulgar, useUnicodeVulgar = _b === void 0 ? true : _b;
+    // if the number is a whole number, return it as a string
+    if (decimal % 1 === 0) return decimal.toString();
+    var decimalPortion = (decimal - Math.floor(decimal)).toFixed(2);
+    var numberPortion = Math.trunc(decimal);
+    numberPortion = numberPortion === 0 ? "" : "".concat(numberPortion, " ");
+    // if the number is a decimal, return it as a fraction
+    if (useUnicodeVulgar) return "".concat(numberPortion).concat(numberLookupMap_1.default[(0, getClosestLookupNumber_1.default)(decimalPortion)].vulgar);
+    return "".concat(numberPortion).concat(numberLookupMap_1.default[(0, getClosestLookupNumber_1.default)(decimalPortion)].fraction);
+};
+exports.default = toFraction;
+
+},{"79c660cd2f28b7e3":"8uuzh","2c56d87c4edb32aa":"KX0Oz"}],"8uuzh":[function(require,module,exports) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var numberLookupMap = {
+    0.1: {
+        vulgar: "\u2152",
+        fraction: "1/10"
+    },
+    0.11: {
+        vulgar: "\u2151",
+        fraction: "1/9"
+    },
+    0.12: {
+        vulgar: "\u215B",
+        fraction: "1/8"
+    },
+    0.14: {
+        vulgar: "\u2150",
+        fraction: "1/7"
+    },
+    0.16: {
+        vulgar: "\u2159",
+        fraction: "1/6"
+    },
+    0.2: {
+        vulgar: "\u2155",
+        fraction: "1/5"
+    },
+    0.25: {
+        vulgar: "\xbc",
+        fraction: "1/4"
+    },
+    0.33: {
+        vulgar: "\u2153",
+        fraction: "1/3"
+    },
+    0.37: {
+        vulgar: "\u215C",
+        fraction: "3/8"
+    },
+    0.4: {
+        vulgar: "\u2156",
+        fraction: "2/5"
+    },
+    0.5: {
+        vulgar: "\xbd",
+        fraction: "1/2"
+    },
+    0.6: {
+        vulgar: "\u2157",
+        fraction: "3/5"
+    },
+    0.62: {
+        vulgar: "\u215D",
+        fraction: "5/8"
+    },
+    0.66: {
+        vulgar: "\u2154",
+        fraction: "2/3"
+    },
+    0.75: {
+        vulgar: "\xbe",
+        fraction: "3/4"
+    },
+    0.8: {
+        vulgar: "\u2158",
+        fraction: "4/5"
+    },
+    0.83: {
+        vulgar: "\u215A",
+        fraction: "5/6"
+    },
+    0.87: {
+        vulgar: "\u215E",
+        fraction: "7/8"
+    }
+};
+exports.default = numberLookupMap;
+
+},{}],"KX0Oz":[function(require,module,exports) {
+"use strict";
+var __importDefault = this && this.__importDefault || function(mod) {
+    return mod && mod.__esModule ? mod : {
+        "default": mod
     };
-    return function() {
-        // XXX hackish.  Is there a better way to address this issue?
-        //
-        /* first check if we have decimals, and if we do eliminate them
-         * multiply by the 10 ^ number of decimal places in the number
-         * round the number to nine decimal places
-         * to avoid js floating point funnies
-         */ if (isFloat(this.denominator)) {
-            var rounded = roundToPlaces(this.denominator, 9);
-            var scaleup = Math.pow(10, rounded.toString().split(".")[1].length);
-            this.denominator = Math.round(this.denominator * scaleup); // this !!! should be a whole number
-            //this.numerator *= scaleup;
-            this.numerator *= scaleup;
-        }
-        if (isFloat(this.numerator)) {
-            var rounded = roundToPlaces(this.numerator, 9);
-            var scaleup = Math.pow(10, rounded.toString().split(".")[1].length);
-            this.numerator = Math.round(this.numerator * scaleup); // this !!! should be a whole number
-            //this.numerator *= scaleup;
-            this.denominator *= scaleup;
-        }
-        var gcf = Fraction.gcf(this.numerator, this.denominator);
-        this.numerator /= gcf;
-        this.denominator /= gcf;
-        if (this.numerator < 0 && this.denominator < 0 || this.numerator > 0 && this.denominator < 0) {
-            this.numerator *= -1;
-            this.denominator *= -1;
-        }
-        return this;
-    };
-}();
-/* Takes two numbers and returns their greatest common factor.
- */ Fraction.gcf = function(a, b) {
-    var common_factors = [];
-    var fa = Fraction.primeFactors(a);
-    var fb = Fraction.primeFactors(b);
-    // for each factor in fa
-    // if it's also in fb
-    // put it into the common factors
-    fa.forEach(function(factor) {
-        var i = fb.indexOf(factor);
-        if (i >= 0) {
-            common_factors.push(factor);
-            fb.splice(i, 1); // remove from fb
+};
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var numberLookupMap_1 = __importDefault(require("d981c32da756708"));
+// get the closest vulgar fraction from a decimal
+var getClosestLookupNumber = function(value) {
+    var closest = 0;
+    var difference = 1;
+    Object.keys(numberLookupMap_1.default).forEach(function(key) {
+        var decimal = parseFloat(key);
+        var newDifference = Math.abs(value - decimal);
+        if (newDifference < difference) {
+            difference = newDifference;
+            closest = decimal;
         }
     });
-    if (common_factors.length === 0) return 1;
-    var gcf = function() {
-        var r = common_factors[0];
-        var i;
-        for(i = 1; i < common_factors.length; i++)r = r * common_factors[i];
-        return r;
-    }();
-    return gcf;
+    return closest;
 };
-// Adapted from: 
-// http://www.btinternet.com/~se16/js/factor.htm
-Fraction.primeFactors = function(n) {
-    var num1 = Math.abs(n);
-    var factors = [];
-    var _factor = 2; // first potential prime factor
-    while(_factor * _factor <= num1)if (num1 % _factor === 0) {
-        factors.push(_factor); // so keep it
-        num1 = num1 / _factor; // and divide our search point by it
-    } else _factor++; // and increment
-    if (num1 != 1) factors.push(num1); //    so it too should be recorded
-    return factors; // Return the prime factors
-};
-module.exports.Fraction = Fraction;
+exports.default = getClosestLookupNumber;
 
-},{}],"9OQAM":[function(require,module,exports) {
+},{"d981c32da756708":"8uuzh"}],"9puOi":[function(require,module,exports) {
+"use strict";
+var __importDefault = this && this.__importDefault || function(mod) {
+    return mod && mod.__esModule ? mod : {
+        "default": mod
+    };
+};
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var numberLookupMap_1 = __importDefault(require("c74aac24e59a6729"));
+// function that takes a unicode vulgar or a fraction and returns a decimal
+var toDecimal = function(value) {
+    if (typeof value === "number") return value;
+    if (value === "" || value === undefined || value === null) return 0;
+    var _a = value.split(" "), int = _a[0], fraction = _a[1];
+    if (fraction === undefined || fraction === "") return parseFloat(int);
+    var decimal = Object.keys(numberLookupMap_1.default).find(function(key) {
+        return numberLookupMap_1.default[key].vulgar === fraction || numberLookupMap_1.default[key].fraction === fraction;
+    }) || fraction;
+    return parseFloat(int) + parseFloat(decimal);
+};
+exports.default = toDecimal;
+
+},{"c74aac24e59a6729":"8uuzh"}],"9OQAM":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _view = require("./View");
